@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signal Transporter ... </title>
+</head>
+<style>
+  #ip_address {
+    background-color: #fff;
+    border: 1px solid #000;
+    text-align: center;
+  }
+
+  #ip_address:read-only {
+    background-color: rgba(0, 0, 0, .3);
+    border: none;
+  }
+
+  #transport.blink {
+    background-color: #00f;
+    color: #fff;
+  }
+
+  #value_input {
+    width: 50px;
+    text-align: center;
+  }
+</style>
+<body>
+  <h5>Signal Transporter ... </h5>
+
+  <div>
+    <label for="ip_address">IP Address</label><br />
+    <input id="ip_address" type="text" />
+    <button id="set_btn">set</button>
+  </div>
+
+  <form 
+    id="transporter_form"
+    method="post"
+    action=""
+    enctype="application/json"
+  >
+    <label>Value transported</label><br />
+    <input 
+      name="value"
+      id="value_input"
+      type="text"
+      readonly
+    />
+    <input
+      id="transport"
+      type="submit"
+      value="send"
+      disabled 
+    />
+  </form>
+
+  <script src="/resources/socket.io.min.js"></script>
+  <script>
+    let socket = io();
+    let initMsg = "";
+
+    const transporterForm = document.getElementById("transporter_form");
+    const valueInput = document.getElementById("value_input");
+    const ipAddress = document.getElementById("ip_address");
+    const setBtn = document.getElementById("set_btn");
+    const transportBtn = document.getElementById("transport");
+
+    if(window.localStorage.getItem("transport_ip_address")){
+      const address = window.localStorage.getItem("transport_ip_address");
+      ipAddress.value = address;
+      transporterForm.setAttribute("action", `http://${address}:3001`);
+      ipAddress.readOnly = true;
+      setBtn.textContent = "edit";
+      initMsg = `ip is set for http://${address}:3001`;
+      socket.emit("request", initMsg);
+    }
+      
+
+    setBtn.addEventListener("click", _ => {
+      if(setBtn.textContent === "set"){
+        transporterForm.setAttribute("action", `http://${ipAddress.value}:3001/`)
+        ipAddress.readOnly = true;
+        setBtn.textContent = "edit";
+        window.localStorage.setItem("transport_ip_address", ipAddress.value);
+        socket.emit("request", initMsg);
+      } else if(setBtn.textContent === "edit"){
+        ipAddress.readOnly = false;
+        setBtn.textContent = "set";
+      }
+    });
+
+    socket.on("request", msg => {
+      if(msg !== initMsg){
+        valueInput.value = msg;
+        transporterForm.submit();
+        transportBtn.classList.add("blink");
+        setTimeout(_ => {
+          transportBtn.classList.remove("blink");
+        }, 500);
+      }
+    });
+  </script>
+</body>
+</html>
